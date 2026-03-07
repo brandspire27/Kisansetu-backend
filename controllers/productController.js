@@ -1,5 +1,4 @@
 const Product = require("../models/Product");
-s
 // ✅ Add Product (Farmer only)
 exports.addProduct = async (req, res) => {
   try {
