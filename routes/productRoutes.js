@@ -23,4 +23,8 @@ router.put("/:id", protect, onlyFarmer, updateProduct);
 
 router.delete("/:id", protect, onlyFarmer, deleteProduct);
 
+router.delete("/:id", async (req, res) => {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: "Product deleted" });
+});
 module.exports = router;
