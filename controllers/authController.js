@@ -107,13 +107,14 @@ exports.login = async (req, res) => {
 // ================= SEND OTP =================
 exports.sendOTP = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, mobile } = req.body;
 
-    if (!email) {
-      return res.status(400).json({ message: "Email is required" });
+    if (!email && !mobile) {
+      return res.status(400).json({
+        message: "Email or Mobile required"
+      });
     }
 
-    // 🔥 generate OTP
     const otp = otpGenerator.generate(6, {
       digits: true,
       alphabets: false,
@@ -121,30 +122,37 @@ exports.sendOTP = async (req, res) => {
       specialChars: false,
     });
 
-    // store OTP
-    otpStore[email] = otp;
+    const key = email || mobile;
 
-    console.log("OTP:", otp); // for testing
+    otpStore[key] = otp;
 
-    // ✉️ send email
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: "your_email@gmail.com",
-        pass: "your_app_password", // ⚠️ use Gmail App Password
-      },
-    });
+    console.log("OTP:", otp); // 🔥 for mobile testing
 
-    await transporter.sendMail({
-      to: email,
-      subject: "Kisan Setu OTP",
-      text: `Your OTP is ${otp}`,
-    });
+    // 📧 If email → send mail
+    if (email) {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: "your_email@gmail.com",
+          pass: "your_app_password",
+        },
+      });
+
+      await transporter.sendMail({
+        to: email,
+        subject: "Kisan Setu OTP",
+        text: `Your OTP is ${otp}`,
+      });
+    }
+
+    // 📱 If mobile → just console (for now)
+    if (mobile) {
+      console.log(`Send this OTP to mobile ${mobile}: ${otp}`);
+    }
 
     res.json({ message: "OTP sent successfully" });
 
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: "Failed to send OTP" });
   }
 };
@@ -152,14 +160,18 @@ exports.sendOTP = async (req, res) => {
 // ================= VERIFY OTP =================
 exports.verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email, mobile, otp } = req.body;
 
-    if (otpStore[email] !== otp) {
+    const key = email || mobile;
+
+    if (otpStore[key] !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
 
     // find user
-    const user = await User.findOne({ email });
+    let user;
+    if (email) user = await User.findOne({ email });
+    if (mobile) user = await User.findOne({ mobile });
 
     if (!user) {
       return res.status(400).json({
@@ -167,25 +179,21 @@ exports.verifyOTP = async (req, res) => {
       });
     }
 
-    // generate token
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // remove OTP after use
-    delete otpStore[email];
+    delete otpStore[key];
 
     res.json({
       token,
       role: user.role,
-      message: "Login successful via OTP"
+      message: "Login successful"
     });
 
   } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 };
