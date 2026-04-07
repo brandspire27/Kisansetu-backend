@@ -1,3 +1,46 @@
+import otpGenerator from "otp-generator";
+import nodemailer from "nodemailer";
+
+// temporary store (later we use DB)
+let otpStore = {};
+
+export const sendOTP = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // 🔥 generate OTP
+    const otp = otpGenerator.generate(6, {
+      digits: true,
+      alphabets: false,
+      upperCase: false,
+      specialChars: false,
+    });
+
+    // save OTP (temporary)
+    otpStore[email] = otp;
+
+    // ✉️ send email
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "your_email@gmail.com",
+        pass: "your_app_password", // ⚠️ not normal password
+      },
+    });
+
+    await transporter.sendMail({
+      to: email,
+      subject: "Kisan Setu OTP",
+      text: `Your OTP is ${otp}`,
+    });
+
+    res.json({ message: "OTP sent successfully" });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ error: "Failed to send OTP" });
+  }
+};
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
