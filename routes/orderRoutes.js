@@ -18,4 +18,13 @@ router.get("/my-orders", protect, getMyOrders);
 router.get("/farmer-orders", protect, getFarmerOrders);
 router.put("/:id/status", protect, updateOrderStatus);
 
+router.get("/", async (req, res) => {
+    const orders = await Order.find().populate("product user");
+    res.json(orders);
+});
+
+router.delete("/:id", async (req, res) => {
+    await Order.findByIdAndDelete(req.params.id);
+    res.json({ message: "Order deleted" });
+});
 module.exports = router;
