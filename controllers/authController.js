@@ -10,12 +10,16 @@ const otpStore = {};
 // ================= REGISTER =================
 exports.register = async (req, res) => {
   try {
-    const { name, email, mobile, password, role } = req.body;
+    const { name, email, mobile, password, role, otp } = req.body;
 
     if (!email && !mobile) {
-      return res.status(400).json({
-        message: "Email or Mobile is required"
-      });
+      return res.status(400).json({ message: "Email or Mobile is required" });
+    }
+
+    // ✅ NEW: Verify OTP during registration
+    const key = email || mobile;
+    if (otpStore[key] !== otp) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     let query = [];
@@ -25,9 +29,7 @@ exports.register = async (req, res) => {
     const existingUser = await User.findOne({ $or: query });
 
     if (existingUser) {
-      return res.status(400).json({
-        message: "User already exists"
-      });
+      return res.status(400).json({ message: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,14 +46,13 @@ exports.register = async (req, res) => {
     const user = new User(userData);
     await user.save();
 
-    res.status(201).json({
-      message: "User registered successfully"
-    });
+    // ✅ NEW: Delete OTP from memory after successful registration
+    delete otpStore[key];
+
+    res.status(201).json({ message: "User registered successfully" });
 
   } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -61,9 +62,7 @@ exports.login = async (req, res) => {
     const { email, mobile, password } = req.body;
 
     if (!email && !mobile) {
-      return res.status(400).json({
-        message: "Email or Mobile is required"
-      });
+      return res.status(400).json({ message: "Email or Mobile is required" });
     }
 
     let query = [];
@@ -73,17 +72,13 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ $or: query });
 
     if (!user) {
-      return res.status(400).json({
-        message: "Invalid credentials"
-      });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(400).json({
-        message: "Invalid credentials"
-      });
+      return res.status(400).json({ message: "Invalid credentials" });
     }
 
     const token = jwt.sign(
@@ -98,9 +93,7 @@ exports.login = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
-      error: error.message
-    });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -110,15 +103,14 @@ exports.sendOTP = async (req, res) => {
     const { email, mobile } = req.body;
 
     if (!email && !mobile) {
-      return res.status(400).json({
-        message: "Email or Mobile required"
-      });
+      return res.status(400).json({ message: "Email or Mobile required" });
     }
 
+    // Note: lowerCaseAlphabets & upperCaseAlphabets are used in newer versions of otp-generator
     const otp = otpGenerator.generate(6, {
       digits: true,
-      alphabets: false,
-      upperCase: false,
+      lowerCaseAlphabets: false,
+      upperCaseAlphabets: false,
       specialChars: false,
     });
 
@@ -133,15 +125,16 @@ exports.sendOTP = async (req, res) => {
       const transporter = nodemailer.createTransport({
         service: "gmail",
         auth: {
-          user: "your_email@gmail.com",
-          pass: "your_app_password",
+          user: process.env.EMAIL_USER, // ✅ Uses Render Environment Variable
+          pass: process.env.EMAIL_PASS, // ✅ Uses Render Environment Variable
         },
       });
 
       await transporter.sendMail({
+        from: process.env.EMAIL_USER,
         to: email,
         subject: "Kisan Setu OTP",
-        text: `Your OTP is ${otp}`,
+        text: `Your Kisan Setu verification OTP is: ${otp}`,
       });
     }
 
@@ -153,7 +146,10 @@ exports.sendOTP = async (req, res) => {
     res.json({ message: "OTP sent successfully" });
 
   } catch (error) {
-    res.status(500).json({ error: "Failed to send OTP" });
+    // Better error logging for Render terminal
+    console.error("OTP Send Error:", error); 
+    // Pass the real error message to the frontend so you can see it if it fails again
+    res.status(500).json({ message: error.message || "Failed to send OTP" });
   }
 };
 
