@@ -5,14 +5,25 @@ export default async function handler(req, res) {
   await connectDB();
 
   if (req.method === "GET") {
-    const orders = await Order.find().populate("userId");
-    return res.json(orders);
+    try {
+      const orders = await Order.find().populate("userId");
+      return res.status(200).json(orders);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
 
   if (req.method === "PUT") {
-    const { id, status } = req.body;
+    try {
+      const { id, status } = req.body;
 
-    await Order.findByIdAndUpdate(id, { status });
-    return res.json({ message: "Order updated" });
+      await Order.findByIdAndUpdate(id, { status });
+
+      return res.status(200).json({ message: "Order updated" });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
   }
+
+  res.status(405).json({ message: "Method not allowed" });
 }
