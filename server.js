@@ -3,13 +3,28 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const dns = require("dns");
+
+// ✅ Fix IPv6 issue (IMPORTANT for your error)
+dns.setDefaultResultOrder("ipv4first");
 
 // ✅ Create app FIRST
 const app = express();
 
 // ✅ Middlewares
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
 app.use(express.json());
+
+// ✅ Debug logger (VERY IMPORTANT)
+app.use((req, res, next) => {
+  console.log(`🔥 ${req.method} ${req.url}`);
+  next();
+});
 
 // ✅ Import Routes
 const productRoutes = require("./routes/productRoutes");
