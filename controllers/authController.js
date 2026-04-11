@@ -126,28 +126,40 @@ if (email) {
     console.log("OTP:", otp); // 🔥 for mobile testing
 
     // 📧 If email → send mail
-    if (email) {
-      const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,          // ✅ FIXED
-  secure: false,      // ✅ IMPORTANT
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});console.log("🔥 STEP 3: Email sent");
+   if (email) {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.gmail.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
 
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Kisan Setu OTP",
-        text: `Your Kisan Setu verification OTP is: ${otp}`,
-      });
-    }
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Kisan Setu OTP",
+      text: `Your OTP is ${otp}`,
+    });
 
+    console.log("✅ Email sent successfully");
+
+  } catch (mailError) {
+    console.error("❌ MAIL ERROR FULL:", mailError);
+
+    // 🔥 IMPORTANT: DO NOT BREAK API
+    return res.status(500).json({
+      message: "Email failed",
+      error: mailError.message
+    });
+  }
+}
     // 📱 If mobile → just console (for now)
     if (mobile) {
       console.log(`Send this OTP to mobile ${mobile}: ${otp}`);
