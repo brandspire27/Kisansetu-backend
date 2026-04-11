@@ -123,12 +123,17 @@ exports.sendOTP = async (req, res) => {
     // 📧 If email → send mail
     if (email) {
       const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-          user: process.env.EMAIL_USER, // ✅ Uses Render Environment Variable
-          pass: process.env.EMAIL_PASS, // ✅ Uses Render Environment Variable
-        },
-      });
+  host: "smtp.gmail.com",
+  port: 587,          // ✅ FIXED
+  secure: false,      // ✅ IMPORTANT
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
 
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
