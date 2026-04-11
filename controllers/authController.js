@@ -105,6 +105,11 @@ exports.sendOTP = async (req, res) => {
     if (!email && !mobile) {
       return res.status(400).json({ message: "Email or Mobile required" });
     }
+    console.log("🔥 STEP 1: Request received");
+
+if (email) {
+  console.log("🔥 STEP 2: About to send email");
+}
 
     // Note: lowerCaseAlphabets & upperCaseAlphabets are used in newer versions of otp-generator
     const otp = otpGenerator.generate(6, {
@@ -133,7 +138,7 @@ exports.sendOTP = async (req, res) => {
   tls: {
     rejectUnauthorized: false,
   },
-});
+});console.log("🔥 STEP 3: Email sent");
 
       await transporter.sendMail({
         from: process.env.EMAIL_USER,
