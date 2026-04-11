@@ -1,9 +1,10 @@
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 require("dotenv").config();
-
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dns = require("dns");
+
 
 // ✅ Fix IPv6 issue (IMPORTANT for your error)
 dns.setDefaultResultOrder("ipv4first");
